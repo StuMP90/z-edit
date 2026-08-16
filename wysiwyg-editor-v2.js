@@ -92,8 +92,6 @@ class WYSIWYGEditor {
             '|',
             'ul', 'ol',
             '|',
-            'indent', 'outdent',
-            '|',
             'code-inline', 'code-block',
             '|',
             'link', 'image',
