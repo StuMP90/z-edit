@@ -143,12 +143,22 @@ class WYSIWYGEditor {
             this.editor.setAttribute('data-placeholder', this.options.placeholder);
         }
 
+        // Create code view textarea
+        this.codeView = document.createElement('textarea');
+        this.codeView.className = 'wysiwyg-code-view';
+        this.codeView.style.display = 'none';
+        this.codeView.spellcheck = false;
+
         // Replace target element with container
         this.targetElement.parentNode.replaceChild(this.container, this.targetElement);
         this.container.appendChild(this.editor);
+        this.container.appendChild(this.codeView);
 
         // Store original element reference
         this.originalElement = this.targetElement;
+
+        // Default view mode
+        this.viewMode = 'editor';
     }
 
     /**
@@ -198,6 +208,11 @@ class WYSIWYGEditor {
         // Save state to history
         const selection = this.selectionManager.getSelection();
         this.historyManager.save(selection);
+
+        // Update code view if visible
+        if (this.codeView) {
+            this.codeView.value = html;
+        }
 
         // Update target element
         this._updateTarget();
@@ -464,16 +479,57 @@ class WYSIWYGEditor {
      * Toggle code view
      */
     toggleCodeView() {
-        // To be implemented
-        console.log('Code view toggle not yet implemented');
+        if (this.viewMode === 'code') {
+            this.setHTML(this.codeView.value);
+            this.viewMode = 'editor';
+            this._updateViewMode();
+            this.editor.focus();
+        } else {
+            this.viewMode = 'code';
+            this.codeView.value = this.getHTML();
+            this._updateViewMode();
+            this.codeView.focus();
+        }
     }
 
     /**
      * Toggle split view
      */
     toggleSplitView() {
-        // To be implemented
-        console.log('Split view toggle not yet implemented');
+        if (this.viewMode === 'split') {
+            this.viewMode = 'editor';
+            this._updateViewMode();
+            this.editor.focus();
+        } else {
+            if (this.viewMode === 'code') {
+                this.setHTML(this.codeView.value);
+            }
+            this.viewMode = 'split';
+            this.codeView.value = this.getHTML();
+            this._updateViewMode();
+            this.editor.focus();
+        }
+    }
+
+    /**
+     * Update visibility of editor and code view based on view mode
+     */
+    _updateViewMode() {
+        if (this.viewMode === 'editor') {
+            this.editor.style.display = 'block';
+            this.codeView.style.display = 'none';
+            this.codeView.readOnly = false;
+        } else if (this.viewMode === 'code') {
+            this.editor.style.display = 'none';
+            this.codeView.style.display = 'block';
+            this.codeView.readOnly = false;
+            this.codeView.style.marginTop = '';
+        } else if (this.viewMode === 'split') {
+            this.editor.style.display = 'block';
+            this.codeView.style.display = 'block';
+            this.codeView.readOnly = true;
+            this.codeView.style.marginTop = '8px';
+        }
     }
 
     /**
@@ -589,6 +645,7 @@ class WYSIWYGEditor {
 
         // Clear references
         this.editor = null;
+        this.codeView = null;
         this.container = null;
         this.toolbar = null;
         this.contentModel = null;
@@ -961,6 +1018,24 @@ class WYSIWYGEditor {
 
             .wysiwyg-editor li {
                 margin: 4px 0;
+            }
+
+            .wysiwyg-code-view {
+                width: 100%;
+                min-height: 200px;
+                padding: 12px;
+                border: none;
+                border-top: 1px solid #ccc;
+                font-family: 'Courier New', Courier, monospace;
+                font-size: 13px;
+                resize: vertical;
+                outline: none;
+                box-sizing: border-box;
+                background: #f9f9f9;
+            }
+
+            .wysiwyg-code-view:focus {
+                background: #fff;
             }
 
             ${this.browserCompat.getCSSFixes()}

@@ -512,6 +512,15 @@ class ContentModel {
                 return;
             }
 
+            // Handle raw HTML blocks (tables, etc.)
+            if (tagName === 'table') {
+                if (ops.length > 0 && ops[ops.length - 1].insert !== '\n') {
+                    ops.push({ insert: '\n' });
+                }
+                ops.push({ insert: '\n', attributes: { ...newAttributes, block: 'html', html: node.outerHTML } });
+                return;
+            }
+
             // Handle inline elements
             for (const child of node.childNodes) {
                 this._parseNode(child, ops, newAttributes);
@@ -570,6 +579,14 @@ class ContentModel {
                 }
                 currentBlock = op.attributes?.block || 'p';
                 currentAttributes = op.attributes || {};
+
+                // Raw HTML blocks are self-contained and contain no text ops
+                if (currentBlock === 'html') {
+                    html += this._openBlock(currentBlock, currentAttributes);
+                    html += this._closeBlock(currentBlock, currentAttributes);
+                    currentBlock = 'p';
+                    currentAttributes = {};
+                }
                 continue;
             }
 
@@ -608,6 +625,7 @@ class ContentModel {
      * Open block element
      */
     _openBlock(tag, attributes) {
+        if (tag === 'html') return attributes?.html || '';
         if (tag === 'p') return '<p>';
         if (tag === 'h1') return '<h1>';
         if (tag === 'h2') return '<h2>';
@@ -623,6 +641,7 @@ class ContentModel {
      * Close block element
      */
     _closeBlock(tag, attributes) {
+        if (tag === 'html') return '';
         if (tag === 'p') return '</p>';
         if (tag === 'h1') return '</h1>';
         if (tag === 'h2') return '</h2>';
