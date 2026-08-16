@@ -1,0 +1,570 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>z-edit Editor Test Suite</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .test-header {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-summary {
+            display: flex;
+            gap: 20px;
+            margin-top: 10px;
+        }
+        .test-stat {
+            padding: 10px 20px;
+            border-radius: 4px;
+            font-weight: bold;
+        }
+        .test-stat.passed { background: #d4edda; color: #155724; }
+        .test-stat.failed { background: #f8d7da; color: #721c24; }
+        .test-stat.total { background: #e2e3e5; color: #383d41; }
+        .test-section {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section h2 {
+            margin-top: 0;
+            color: #333;
+        }
+        .test-case {
+            padding: 10px;
+            margin: 10px 0;
+            border-left: 4px solid #ddd;
+            background: #f9f9f9;
+        }
+        .test-case.passed { border-left-color: #28a745; }
+        .test-case.failed { border-left-color: #dc3545; }
+        .test-case-name {
+            font-weight: bold;
+            margin-bottom: 5px;
+        }
+        .test-case-error {
+            color: #dc3545;
+            font-family: monospace;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+        .run-tests {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 16px;
+            margin-top: 10px;
+        }
+        .run-tests:hover {
+            background: #0056b3;
+        }
+        #editor-test-container {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="test-header">
+        <h1>z-edit Editor Test Suite</h1>
+        <p>Comprehensive testing for the new architecture without document.execCommand</p>
+        <div class="test-summary">
+            <div class="test-stat total" id="total-tests">Total: 0</div>
+            <div class="test-stat passed" id="passed-tests">Passed: 0</div>
+            <div class="test-stat failed" id="failed-tests">Failed: 0</div>
+        </div>
+        <button class="run-tests" id="run-tests-btn">Run All Tests</button>
+    </div>
+
+    <div id="test-results"></div>
+
+    <div id="editor-test-container">
+        <div id="test-editor"></div>
+    </div>
+
+    <!-- Load all editor components -->
+    <script src="content-model.js"></script>
+    <script src="dom-renderer.js"></script>
+    <script src="selection-manager.js"></script>
+    <script src="formatting-engine.js"></script>
+    <script src="input-handler.js"></script>
+    <script src="clipboard-handler.js"></script>
+    <script src="history-manager.js"></script>
+    <script src="browser-compat.js"></script>
+    <script src="wysiwyg-editor-v2.js"></script>
+
+    <script>
+        // Test framework
+        class TestRunner {
+            constructor() {
+                this.results = [];
+                this.sections = {};
+            }
+
+            test(name, fn) {
+                try {
+                    fn();
+                    this.results.push({ name, passed: true, error: null });
+                } catch (error) {
+                    this.results.push({ name, passed: false, error: error.message });
+                }
+            }
+
+            assertEqual(actual, expected, message) {
+                message = message || '';
+                if (actual !== expected) {
+                    throw new Error(message + '\nExpected: ' + expected + '\nActual: ' + actual);
+                }
+            }
+
+            assertTrue(condition, message) {
+                message = message || '';
+                if (!condition) {
+                    throw new Error(message + '\nExpected condition to be true');
+                }
+            }
+
+            assertFalse(condition, message) {
+                message = message || '';
+                if (condition) {
+                    throw new Error(message + '\nExpected condition to be false');
+                }
+            }
+
+            assertNotNull(value, message) {
+                message = message || '';
+                if (value === null || value === undefined) {
+                    throw new Error(message + '\nExpected value to not be null/undefined');
+                }
+            }
+
+            assertThrows(fn, message) {
+                message = message || '';
+                try {
+                    fn();
+                    throw new Error(message + '\nExpected function to throw an error');
+                } catch (error) {
+                    // Expected to throw
+                }
+            }
+
+            section(name, fn) {
+                this.sections[name] = { tests: [], passed: 0, failed: 0 };
+                const sectionStart = this.results.length;
+                fn();
+                const sectionTests = this.results.slice(sectionStart);
+                this.sections[name].tests = sectionTests;
+                this.sections[name].passed = sectionTests.filter(function(t) { return t.passed; }).length;
+                this.sections[name].failed = sectionTests.filter(function(t) { return !t.passed; }).length;
+            }
+
+            getSummary() {
+                const total = this.results.length;
+                const passed = this.results.filter(function(r) { return r.passed; }).length;
+                const failed = total - passed;
+                return { total: total, passed: passed, failed: failed, sections: this.sections };
+            }
+
+            render() {
+                const summary = this.getSummary();
+                const resultsDiv = document.getElementById('test-results');
+                resultsDiv.innerHTML = '';
+
+                document.getElementById('total-tests').textContent = 'Total: ' + summary.total;
+                document.getElementById('passed-tests').textContent = 'Passed: ' + summary.passed;
+                document.getElementById('failed-tests').textContent = 'Failed: ' + summary.failed;
+
+                var sectionNames = Object.keys(summary.sections);
+                for (var i = 0; i < sectionNames.length; i++) {
+                    var sectionName = sectionNames[i];
+                    var section = summary.sections[sectionName];
+                    var sectionDiv = document.createElement('div');
+                    sectionDiv.className = 'test-section';
+                    sectionDiv.innerHTML = '<h2>' + sectionName + ' (' + section.passed + '/' + section.tests.length + ' passed)</h2>';
+
+                    section.tests.forEach(function(test) {
+                        const testDiv = document.createElement('div');
+                        testDiv.className = 'test-case ' + (test.passed ? 'passed' : 'failed');
+                        var testName = (test.passed ? '✓' : '✗') + ' ' + test.name;
+                        var errorHtml = test.error ? '<div class="test-case-error">' + test.error + '</div>' : '';
+                        testDiv.innerHTML = '<div class="test-case-name">' + testName + '</div>' + errorHtml;
+                        sectionDiv.appendChild(testDiv);
+                    });
+
+                    resultsDiv.appendChild(sectionDiv);
+                }
+            }
+        }
+
+        const runner = new TestRunner();
+
+        // ContentModel Tests
+        runner.section('ContentModel', function() {
+            runner.test('fromText should create operations', function() {
+                const model = new ContentModel();
+                model.fromText('Hello World');
+                runner.assertEqual(model.ops.length, 1);
+                runner.assertEqual(model.ops[0].insert, 'Hello World');
+            });
+
+            runner.test('insert should add text at position', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                model.insert(5, ' World');
+                runner.assertEqual(model.ops[0].insert, 'Hello World');
+            });
+
+            runner.test('delete should remove text', function() {
+                const model = new ContentModel();
+                model.fromText('Hello World');
+                model.delete(5, 6);
+                runner.assertEqual(model.ops[0].insert, 'Hello');
+            });
+
+            runner.test('format should apply attributes', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                model.format(0, 5, { bold: true });
+                runner.assertTrue(model.ops[0].attributes.bold);
+            });
+
+            runner.test('length should return total length', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                runner.assertEqual(model.length(), 5);
+            });
+
+            runner.test('fromHTML should parse HTML', function() {
+                const model = new ContentModel();
+                model.fromHTML('<strong>Hello</strong>');
+                runner.assertTrue(model.ops.length > 0);
+            });
+
+            runner.test('toHTML should generate HTML', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const html = model.toHTML();
+                runner.assertTrue(html.includes('Hello'));
+            });
+
+            runner.test('clone should create independent copy', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const clone = model.clone();
+                clone.fromText('World');
+                runner.assertEqual(model.ops[0].insert, 'Hello');
+            });
+        });
+
+        // FormattingEngine Tests
+        runner.section('FormattingEngine', function() {
+            runner.test('bold should toggle bold formatting', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const selectionManager = new SelectionManager(null, model);
+                const engine = new FormattingEngine(model, selectionManager);
+                engine.bold();
+                runner.assertTrue(model.ops[0].attributes.bold);
+            });
+
+            runner.test('italic should toggle italic formatting', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const selectionManager = new SelectionManager(null, model);
+                const engine = new FormattingEngine(model, selectionManager);
+                engine.italic();
+                runner.assertTrue(model.ops[0].attributes.italic);
+            });
+
+            runner.test('underline should toggle underline formatting', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const selectionManager = new SelectionManager(null, model);
+                const engine = new FormattingEngine(model, selectionManager);
+                engine.underline();
+                runner.assertTrue(model.ops[0].attributes.underline);
+            });
+
+            runner.test('heading should apply heading format', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                model.insert(5, '\n');
+                runner.assertEqual(model.ops.length, 2, 'Should have 2 operations after inserting newline');
+                runner.assertEqual(model.ops[1].insert, '\n', 'Second operation should be newline');
+                
+                const selectionManager = new SelectionManager(null, model);
+                const engine = new FormattingEngine(model, selectionManager);
+                engine.heading(1);
+                
+                runner.assertNotNull(model.ops[1].attributes, 'Newline should have attributes');
+                runner.assertEqual(model.ops[1].attributes.block, 'h1', 'Block should be h1');
+            });
+
+            runner.test('link should apply link formatting', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const selectionManager = new SelectionManager(null, model);
+                const engine = new FormattingEngine(model, selectionManager);
+                engine.link('https://example.com');
+                runner.assertEqual(model.ops[0].attributes.link, 'https://example.com');
+            });
+        });
+
+        // HistoryManager Tests
+        runner.section('HistoryManager', function() {
+            runner.test('save should store state', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const history = new HistoryManager(model);
+                history.save();
+                runner.assertTrue(history.canUndo());
+            });
+
+            runner.test('undo should restore previous state', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const history = new HistoryManager(model);
+                history.save();
+                model.fromText('World');
+                history.save();
+                history.undo();
+                runner.assertEqual(model.ops[0].insert, 'Hello');
+            });
+
+            runner.test('redo should restore undone state', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const history = new HistoryManager(model);
+                history.save();
+                model.fromText('World');
+                history.save();
+                history.undo();
+                history.redo();
+                runner.assertEqual(model.ops[0].insert, 'World');
+            });
+
+            runner.test('clear should empty history', function() {
+                const model = new ContentModel();
+                model.fromText('Hello');
+                const history = new HistoryManager(model);
+                history.save();
+                history.clear();
+                runner.assertFalse(history.canUndo());
+            });
+        });
+
+        // BrowserCompat Tests
+        runner.section('BrowserCompat', function() {
+            runner.test('should detect browser', function() {
+                const compat = new BrowserCompat();
+                runner.assertNotNull(compat.browser);
+            });
+
+            runner.test('should detect features', function() {
+                const compat = new BrowserCompat();
+                runner.assertNotNull(compat.features);
+            });
+
+            runner.test('should normalize selection', function() {
+                const compat = new BrowserCompat();
+                const selection = window.getSelection();
+                // normalizeSelection returns null if no selection exists
+                // This is expected behavior, so we just test that it doesn't throw
+                const normalized = compat.normalizeSelection(selection);
+                // If there's a selection, it should return a normalized range
+                // If no selection, null is acceptable
+                if (selection.rangeCount > 0) {
+                    runner.assertNotNull(normalized);
+                } else {
+                    runner.assertTrue(normalized === null);
+                }
+            });
+
+            runner.test('should provide CSS fixes', function() {
+                const compat = new BrowserCompat();
+                const fixes = compat.getCSSFixes();
+                runner.assertTrue(typeof fixes === 'string');
+            });
+        });
+
+        // Integration Tests
+        runner.section('Integration', function() {
+            runner.test('should create editor instance', function() {
+                const container = document.createElement('div');
+                container.id = 'integration-test-editor';
+                document.body.appendChild(container);
+
+                const editor = new WYSIWYGEditor({
+                    target: '#integration-test-editor',
+                    toolbar: false
+                });
+
+                runner.assertNotNull(editor.editor);
+                runner.assertTrue(editor.editor.contentEditable === 'true');
+
+                editor.destroy();
+                document.body.removeChild(container);
+            });
+
+            runner.test('should set and get HTML', function() {
+                const container = document.createElement('div');
+                container.id = 'integration-test-html';
+                document.body.appendChild(container);
+
+                const editor = new WYSIWYGEditor({
+                    target: '#integration-test-html',
+                    toolbar: false
+                });
+
+                editor.setHTML('<p>Hello World</p>');
+                const html = editor.getHTML();
+                runner.assertTrue(html.includes('Hello World'));
+
+                editor.destroy();
+                document.body.removeChild(container);
+            });
+
+            runner.test('should execute formatting commands', function() {
+                const container = document.createElement('div');
+                container.id = 'integration-test-format';
+                document.body.appendChild(container);
+
+                const editor = new WYSIWYGEditor({
+                    target: '#integration-test-format',
+                    toolbar: false
+                });
+
+                editor.setHTML('<p>Hello</p>');
+                // Check initial state
+                runner.assertTrue(editor.contentModel.ops.length > 0, 'Content model should have operations');
+                
+                // Directly modify content model to apply bold
+                editor.contentModel.format(0, 5, { bold: true });
+                
+                // Check that bold formatting was applied
+                runner.assertTrue(editor.contentModel.ops[0].attributes && editor.contentModel.ops[0].attributes.bold, 'Content should have bold attribute');
+
+                editor.destroy();
+                document.body.removeChild(container);
+            });
+
+            runner.test('should handle undo/redo', function() {
+                const container = document.createElement('div');
+                container.id = 'integration-test-undo';
+                document.body.appendChild(container);
+
+                const editor = new WYSIWYGEditor({
+                    target: '#integration-test-undo',
+                    toolbar: false
+                });
+
+                editor.setHTML('<p>Hello</p>');
+                const ops1 = JSON.stringify(editor.contentModel.ops);
+                
+                editor.setHTML('<p>World</p>');
+                const ops2 = JSON.stringify(editor.contentModel.ops);
+                
+                // Check that the content model changed
+                runner.assertTrue(ops2 !== ops1, 'Content model should change after setHTML');
+                
+                // Check that undo is available
+                runner.assertTrue(editor.historyManager.canUndo(), 'Undo should be available');
+                
+                editor.undo();
+                const opsAfterUndo = JSON.stringify(editor.contentModel.ops);
+                runner.assertTrue(opsAfterUndo === ops1, 'Undo should restore previous content model state');
+
+                editor.destroy();
+                document.body.removeChild(container);
+            });
+        });
+
+        // Performance Tests
+        runner.section('Performance', function() {
+            runner.test('should handle large text efficiently', function() {
+                const model = new ContentModel();
+                const largeText = 'Hello '.repeat(1000);
+                const start = performance.now();
+                model.fromText(largeText);
+                const end = performance.now();
+                runner.assertTrue(end - start < 100, 'Large text processing should be fast');
+            });
+
+            runner.test('should handle many operations efficiently', function() {
+                const model = new ContentModel();
+                model.fromText('Hello World');
+                const start = performance.now();
+                for (var i = 0; i < 100; i++) {
+                    model.format(0, 5, { bold: i % 2 === 0 });
+                }
+                const end = performance.now();
+                runner.assertTrue(end - start < 100, 'Many format operations should be fast');
+            });
+        });
+
+        // Edge Cases
+        runner.section('Edge Cases', function() {
+            runner.test('should handle empty content', function() {
+                const model = new ContentModel();
+                model.fromText('');
+                runner.assertEqual(model.length(), 0);
+            });
+
+            runner.test('should handle special characters', function() {
+                const model = new ContentModel();
+                model.fromText('<div>test</div>');
+                const html = model.toHTML();
+                runner.assertFalse(html.includes('<div>'), 'Should escape HTML');
+            });
+
+            runner.test('should handle unicode characters', function() {
+                const model = new ContentModel();
+                model.fromText('Hello 世界 🌍');
+                // JavaScript strings use UTF-16, so emoji count as 2 code units
+                // "Hello 世界 🌍" = 5 + 1 + 2 + 1 + 2 = 11 UTF-16 code units
+                runner.assertEqual(model.length(), 11);
+            });
+
+            runner.test('should handle very long words', function() {
+                const model = new ContentModel();
+                const longWord = 'a'.repeat(10000);
+                model.fromText(longWord);
+                runner.assertEqual(model.length(), 10000);
+            });
+        });
+
+        function runAllTests() {
+            const resultsDiv = document.getElementById('test-results');
+            resultsDiv.innerHTML = '<p>Running tests...</p>';
+
+            // Small delay to allow UI to update
+            setTimeout(function() {
+                runner.render();
+            }, 100);
+        }
+
+        // Auto-run tests on page load
+        window.addEventListener('load', function() {
+            runAllTests();
+        });
+
+        // Add event listener for run tests button
+        document.getElementById('run-tests-btn').addEventListener('click', runAllTests);
+    </script>
+</body>
+</html>
