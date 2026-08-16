@@ -12,6 +12,9 @@ A pure JavaScript WYSIWYG (What You See Is What You Get) HTML editor with no ext
 - ✅ **Accessibility** - Full ARIA labels, roles, and keyboard navigation
 - ✅ **Embeddable** - Works with textareas, inputs, or divs
 - ✅ **Rich Formatting** - Bold, italic, underline, headings, lists, links, images, and more
+- ✅ **List Indentation** - Indent and outdent list items for nested structures
+- ✅ **Code Formatting** - Inline code and code block support with proper styling
+- ✅ **Smart Paste** - Multi-line code is automatically formatted as code blocks
 - ✅ **Keyboard Shortcuts** - Standard shortcuts for common operations
 - ✅ **Code View** - Toggle between WYSIWYG and HTML code view
 
@@ -72,13 +75,17 @@ const editor = new WYSIWYGEditor({
         '|',
         'ul', 'ol',
         '|',
+        'indent', 'outdent',
+        '|',
+        'code-inline', 'code-block',
+        '|',
         'link', 'image',
         '|',
         'align-left', 'align-center', 'align-right',
         '|',
         'undo', 'redo',
         '|',
-        'code', 'clear'
+        'code', 'split', 'clear'
     ],
     
     // Placeholder text
@@ -400,6 +407,42 @@ const editor = new WYSIWYGEditor({
     toolbar: false
 });
 ```
+
+### Code Formatting
+
+The editor supports both inline code and code blocks:
+
+```javascript
+const editor = new WYSIWYGEditor({
+    target: '#editor',
+    toolbarButtons: [
+        'bold', 'italic', 'code-inline', 'code-block', '|',
+        'ul', 'ol', 'indent', 'outdent'
+    ]
+});
+```
+
+- **Inline Code**: Select text and click the inline code button to format it as `<code>` with styled appearance
+- **Code Block**: Click the code block button to insert a `<pre><code>` block for multi-line code
+- **Smart Paste**: When you paste multi-line content, it's automatically wrapped in a code block
+- **Multi-line Selection**: Selecting multi-line text and clicking inline code automatically creates a code block
+
+### List Indentation
+
+Create nested lists with indent and outdent controls:
+
+```javascript
+const editor = new WYSIWYGEditor({
+    target: '#editor',
+    toolbarButtons: [
+        'ul', 'ol', 'indent', 'outdent'
+    ]
+});
+```
+
+- Select list items and click indent (→) to nest them
+- Click outdent (←) to reduce nesting level
+- Works with both bullet lists and numbered lists
 
 ### Programmatic Content Insertion
 
