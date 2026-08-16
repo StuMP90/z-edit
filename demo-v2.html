@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>z-edit Editor v2.0 Demo</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            margin-bottom: 10px;
+            font-weight: 700;
+        }
+
+        .header p {
+            font-size: 1.2rem;
+            opacity: 0.9;
+        }
+
+        .badge {
+            display: inline-block;
+            background: rgba(255, 255, 255, 0.2);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            margin-top: 15px;
+        }
+
+        .editor-container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            overflow: hidden;
+        }
+
+        .editor-wrapper {
+            padding: 30px;
+        }
+
+        .features {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-top: 40px;
+        }
+
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            padding: 25px;
+            border-radius: 10px;
+            color: white;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .feature-card h3 {
+            font-size: 1.2rem;
+            margin-bottom: 10px;
+            font-weight: 600;
+        }
+
+        .feature-card p {
+            font-size: 0.95rem;
+            opacity: 0.9;
+            line-height: 1.6;
+        }
+
+        .feature-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+        }
+
+        .footer {
+            text-align: center;
+            color: white;
+            margin-top: 40px;
+            opacity: 0.8;
+        }
+
+        .footer a {
+            color: white;
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>z-edit Editor v2.0</h1>
+            <p>Modern WYSIWYG editor without document.execCommand</p>
+            <div class="badge">✨ New Architecture • No execCommand • Full Rewrite</div>
+        </div>
+
+        <div class="editor-container">
+            <div class="editor-wrapper">
+                <div id="editor-v2"></div>
+            </div>
+        </div>
+
+        <div class="features">
+            <div class="feature-card">
+                <div class="feature-icon">🚀</div>
+                <h3>Modern Architecture</h3>
+                <p>Custom content model with Delta-like format, DOM renderer, and advanced selection management.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">✨</div>
+                <h3>No execCommand</h3>
+                <p>Completely rewritten without deprecated document.execCommand for better compatibility.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🎨</div>
+                <h3>Rich Formatting</h3>
+                <p>Bold, italic, underline, headings, lists, links, images, code blocks, and more.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">📋</div>
+                <h3>Smart Clipboard</h3>
+                <p>Advanced paste handling with HTML, plain text, and custom format support.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">↩️</div>
+                <h3>History Management</h3>
+                <p>Full undo/redo functionality with state snapshots and configurable history size.</p>
+            </div>
+            <div class="feature-card">
+                <div class="feature-icon">🌐</div>
+                <h3>Cross-Browser</h3>
+                <p>Built-in compatibility layer with feature detection and browser-specific fixes.</p>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>z-edit Editor v2.0 • <a href="test-suite.html">Run Test Suite</a> • <a href="demo.html">View Original Demo</a></p>
+        </div>
+    </div>
+
+    <!-- Load v2.0 Components -->
+    <script src="content-model.js"></script>
+    <script src="dom-renderer.js"></script>
+    <script src="selection-manager.js"></script>
+    <script src="formatting-engine.js"></script>
+    <script src="input-handler.js"></script>
+    <script src="clipboard-handler.js"></script>
+    <script src="history-manager.js"></script>
+    <script src="browser-compat.js"></script>
+    <script src="wysiwyg-editor-v2.js"></script>
+
+    <script>
+        // Initialize the v2.0 editor
+        const editor = new WYSIWYGEditor({
+            target: '#editor-v2',
+            placeholder: 'Start typing your content here...',
+            toolbar: true,
+            maxHistorySize: 100,
+            onChange: function(html) {
+                console.log('Content changed:', html);
+            }
+        });
+
+        // Set initial content
+        editor.setHTML(`
+            <h2>Welcome to z-edit Editor v2.0</h2>
+            <p>This is a <strong>modern WYSIWYG editor</strong> built without using <code>document.execCommand</code>.</p>
+            <h3>Key Features:</h3>
+            <ul>
+                <li>Custom content model with Delta-like format</li>
+                <li>Advanced DOM rendering and synchronization</li>
+                <li>Precise selection and range management</li>
+                <li>Custom formatting engine</li>
+                <li>Smart clipboard integration</li>
+                <li>Full undo/redo support</li>
+                <li>Cross-browser compatibility layer</li>
+            </ul>
+            <p>Try out the formatting options in the toolbar above!</p>
+        `);
+    </script>
+</body>
+</html>
