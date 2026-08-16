@@ -100,8 +100,6 @@ class WYSIWYGEditor {
             '|',
             'align-left', 'align-center', 'align-right',
             '|',
-            'undo', 'redo',
-            '|',
             'code', 'split', 'clear'
         ];
     }
@@ -628,14 +626,59 @@ class WYSIWYGEditor {
     }
 
     /**
-     * Change the tag of the current block-level element
+     * Change the tag of all selected top-level blocks
      */
     _changeBlockTag(tag) {
-        const block = this._getCurrentBlock();
-        if (!block || block === this.editor) return;
-        const newBlock = document.createElement(tag);
-        while (block.firstChild) newBlock.appendChild(block.firstChild);
-        block.parentNode.replaceChild(newBlock, block);
+        const selection = window.getSelection();
+        if (!selection.rangeCount) return;
+        const range = selection.getRangeAt(0);
+
+        const getTopBlock = (node) => {
+            while (node && node !== this.editor && node.parentNode !== this.editor) {
+                node = node.parentNode;
+            }
+            return (node && node !== this.editor) ? node : null;
+        };
+
+        const startBlock = getTopBlock(range.startContainer);
+        const endBlock = getTopBlock(range.endContainer);
+        if (!startBlock || !endBlock) return;
+
+        const children = Array.from(this.editor.childNodes);
+        let startIndex = children.indexOf(startBlock);
+        let endIndex = children.indexOf(endBlock);
+        if (startIndex === -1 || endIndex === -1) return;
+        if (startIndex > endIndex) [startIndex, endIndex] = [endIndex, startIndex];
+
+        if (tag === 'pre') {
+            // Merge selected blocks into a single <pre><code>
+            const pre = document.createElement('pre');
+            const code = document.createElement('code');
+            const lines = [];
+            for (let i = startIndex; i <= endIndex; i++) {
+                const node = children[i];
+                if (node.nodeType === Node.ELEMENT_NODE) {
+                    lines.push(node.textContent);
+                }
+            }
+            code.textContent = lines.join('\n');
+            pre.appendChild(code);
+            this.editor.replaceChild(pre, children[startIndex]);
+            for (let i = startIndex + 1; i <= endIndex; i++) {
+                this.editor.removeChild(children[i]);
+            }
+            return;
+        }
+
+        for (let i = startIndex; i <= endIndex; i++) {
+            const node = children[i];
+            if (node.nodeType !== Node.ELEMENT_NODE) continue;
+            if (node.nodeName === tag.toUpperCase()) continue;
+            const newBlock = document.createElement(tag);
+            while (node.firstChild) newBlock.appendChild(node.firstChild);
+            this.editor.replaceChild(newBlock, node);
+            children[i] = newBlock;
+        }
     }
 
     /**
