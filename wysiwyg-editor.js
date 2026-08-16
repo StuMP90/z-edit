@@ -16,6 +16,10 @@ class WYSIWYGEditor {
                 '|',
                 'ul', 'ol',
                 '|',
+                'indent', 'outdent',
+                '|',
+                'code-inline', 'code-block',
+                '|',
                 'link', 'image',
                 '|',
                 'align-left', 'align-center', 'align-right',
@@ -190,6 +194,10 @@ class WYSIWYGEditor {
             'align-right': { icon: '≡', title: 'Align Right' },
             'undo': { icon: '↶', title: 'Undo (Ctrl+Z)' },
             'redo': { icon: '↷', title: 'Redo (Ctrl+Y)' },
+            'indent': { icon: '→', title: 'Indent List' },
+            'outdent': { icon: '←', title: 'Outdent List' },
+            'code-inline': { icon: '&lt;code&gt;', title: 'Inline Code' },
+            'code-block': { icon: '{ }', title: 'Code Block' },
             'code': { icon: '&lt;/&gt;', title: 'View HTML Code' },
             'split': { icon: '⇆', title: 'Split View (Code + Preview)' },
             'clear': { icon: '✕', title: 'Clear Formatting' }
@@ -227,6 +235,23 @@ class WYSIWYGEditor {
                 break;
             case 'ol':
                 document.execCommand('insertOrderedList', false, null);
+                break;
+            case 'indent':
+                document.execCommand('indent', false, null);
+                break;
+            case 'outdent':
+                document.execCommand('outdent', false, null);
+                break;
+            case 'code-inline':
+                const selectedText = window.getSelection().toString();
+                if (selectedText.includes('\n')) {
+                    this.insertCodeBlock();
+                } else {
+                    document.execCommand('insertHTML', false, '<code>' + selectedText + '</code>');
+                }
+                break;
+            case 'code-block':
+                this.insertCodeBlock();
                 break;
             case 'link':
                 this.insertLink();
@@ -628,6 +653,32 @@ class WYSIWYGEditor {
         this.saveState();
     }
 
+    insertCodeBlock() {
+        const selection = window.getSelection();
+        const selectedText = selection.toString() || 'Your code here';
+        
+        const codeBlock = document.createElement('pre');
+        codeBlock.className = 'wysiwyg-code-block';
+        
+        const code = document.createElement('code');
+        code.textContent = selectedText;
+        codeBlock.appendChild(code);
+        
+        if (selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0);
+            range.deleteContents();
+            range.insertNode(codeBlock);
+            range.setStartAfter(codeBlock);
+            range.setEndAfter(codeBlock);
+            selection.removeAllRanges();
+            selection.addRange(range);
+        } else {
+            this.editor.appendChild(codeBlock);
+        }
+        
+        this.saveState();
+    }
+
     toggleCodeView() {
         if (this.isSplitView) {
             this.exitSplitView();
@@ -920,8 +971,40 @@ class WYSIWYGEditor {
 
         this.editor.addEventListener('paste', (e) => {
             e.preventDefault();
-            const text = e.clipboardData.getData('text/html') || e.clipboardData.getData('text/plain');
-            document.execCommand('insertHTML', false, text);
+            const html = e.clipboardData.getData('text/html');
+            const text = e.clipboardData.getData('text/plain');
+            
+            if (html) {
+                // If HTML content is available, use it
+                document.execCommand('insertHTML', false, html);
+            } else if (text) {
+                // For plain text, check if it contains multiple lines
+                if (text.includes('\n')) {
+                    // Wrap multi-line content in a code block
+                    const codeBlock = document.createElement('pre');
+                    codeBlock.className = 'wysiwyg-code-block';
+                    const code = document.createElement('code');
+                    code.textContent = text;
+                    codeBlock.appendChild(code);
+                    
+                    const selection = window.getSelection();
+                    if (selection.rangeCount > 0) {
+                        const range = selection.getRangeAt(0);
+                        range.deleteContents();
+                        range.insertNode(codeBlock);
+                        range.setStartAfter(codeBlock);
+                        range.setEndAfter(codeBlock);
+                        selection.removeAllRanges();
+                        selection.addRange(range);
+                    } else {
+                        this.editor.appendChild(codeBlock);
+                    }
+                    this.saveState();
+                } else {
+                    // Single line text - insert as paragraph
+                    document.execCommand('insertText', false, text);
+                }
+            }
         });
 
         this.editor.addEventListener('drop', (e) => {
@@ -967,6 +1050,24 @@ class WYSIWYGEditor {
                         e.preventDefault();
                         this.executeCommand('underline');
                         break;
+                }
+            }
+
+            // Handle Enter key in code blocks to preserve structure
+            if (e.key === 'Enter') {
+                const selection = window.getSelection();
+                if (selection.rangeCount > 0) {
+                    let node = selection.anchorNode;
+                    if (node.nodeType === Node.TEXT_NODE) {
+                        node = node.parentNode;
+                    }
+                    
+                    // Check if we're inside a code block
+                    const preElement = node.closest('pre');
+                    if (preElement) {
+                        e.preventDefault();
+                        document.execCommand('insertHTML', false, '\n');
+                    }
                 }
             }
         });
@@ -1362,6 +1463,37 @@ ${content}
                 color: #666;
             }
 
+            .wysiwyg-editor code {
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+                border-radius: 3px;
+                padding: 2px 6px;
+                font-family: 'Courier New', monospace;
+                font-size: 0.9em;
+                color: #d63384;
+            }
+
+            .wysiwyg-editor pre {
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 12px;
+                margin: 16px 0;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+
+            .wysiwyg-editor pre code {
+                background: none;
+                border: none;
+                padding: 0;
+                color: #333;
+                font-size: 14px;
+                white-space: pre-wrap;
+                display: block;
+            }
+
             .wysiwyg-image-selected {
                 outline: 3px solid #0066cc;
                 outline-offset: 2px;
@@ -1617,6 +1749,37 @@ ${content}
             .wysiwyg-preview-pane a {
                 color: #0066cc;
                 text-decoration: underline;
+            }
+
+            .wysiwyg-preview-pane code {
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+                border-radius: 3px;
+                padding: 2px 6px;
+                font-family: 'Courier New', monospace;
+                font-size: 0.9em;
+                color: #d63384;
+            }
+
+            .wysiwyg-preview-pane pre {
+                background: #f5f5f5;
+                border: 1px solid #ddd;
+                border-radius: 4px;
+                padding: 12px;
+                margin: 16px 0;
+                overflow-x: auto;
+                white-space: pre-wrap;
+                word-wrap: break-word;
+            }
+
+            .wysiwyg-preview-pane pre code {
+                background: none;
+                border: none;
+                padding: 0;
+                color: #333;
+                font-size: 14px;
+                white-space: pre-wrap;
+                display: block;
             }
         `;
 
