@@ -803,23 +803,21 @@ class WYSIWYGEditor {
     }
 
     /**
-     * Clear formatting in the current selection
+     * Clear formatting in the current selection while preserving blocks/line breaks
      */
     _clearSelection() {
         const selection = window.getSelection();
         if (!selection.rangeCount) return;
-        const range = selection.getRangeAt(0);
-        const contents = range.extractContents();
-        const flat = document.createDocumentFragment();
-        const walker = document.createTreeWalker(contents, NodeFilter.SHOW_TEXT);
-        let textNode;
-        while ((textNode = walker.nextNode())) {
-            flat.appendChild(document.createTextNode(textNode.textContent));
+
+        const formattingTags = ['strong', 'b', 'em', 'i', 'u', 's', 'strike', 'code', 'a'];
+        const elements = this.editor.querySelectorAll(formattingTags.join(', '));
+        for (const el of elements) {
+            if (selection.containsNode(el, true)) {
+                const parent = el.parentNode;
+                while (el.firstChild) parent.insertBefore(el.firstChild, el);
+                parent.removeChild(el);
+            }
         }
-        range.insertNode(flat);
-        range.collapse(false);
-        selection.removeAllRanges();
-        selection.addRange(range);
     }
 
     /**
