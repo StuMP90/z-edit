@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WYSIWYG Editor Demo</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f9f9f9;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .demo-section {
+            background: white;
+            padding: 20px;
+            margin-bottom: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .demo-section h2 {
+            margin-top: 0;
+            color: #333;
+            border-bottom: 2px solid #0066cc;
+            padding-bottom: 10px;
+        }
+
+        .demo-section p {
+            color: #666;
+            line-height: 1.6;
+        }
+
+        .code-block {
+            background: #f5f5f5;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 15px 0;
+            overflow-x: auto;
+        }
+
+        .code-block code {
+            font-family: 'Courier New', monospace;
+            font-size: 14px;
+        }
+
+        .output-section {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 4px;
+        }
+
+        .output-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+
+        .output-section pre {
+            background: #fff;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            max-height: 300px;
+        }
+
+        .feature-list {
+            list-style: none;
+            padding: 0;
+        }
+
+        .feature-list li {
+            padding: 8px 0;
+            padding-left: 24px;
+            position: relative;
+        }
+
+        .feature-list li:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #0066cc;
+            font-weight: bold;
+        }
+
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-right: 10px;
+            margin-top: 10px;
+        }
+
+        button:hover {
+            background: #0052a3;
+        }
+
+        button:active {
+            background: #003d7a;
+        }
+
+        #editor-description {
+            margin-top: 10px;
+            padding: 10px;
+            background: #e3f2fd;
+            border-left: 4px solid #0066cc;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <h1>WYSIWYG HTML Editor</h1>
+    <p class="subtitle">A pure JavaScript WYSIWYG editor with no external dependencies</p>
+
+    <div class="demo-section">
+        <h2>Features</h2>
+        <ul class="feature-list">
+            <li>Pure JavaScript - No external dependencies</li>
+            <li>Drag and drop image support</li>
+            <li>Undo/Redo functionality (Ctrl+Z / Ctrl+Y)</li>
+            <li>Supports both HTML fragments and full documents</li>
+            <li>Custom templating system support</li>
+            <li>Full accessibility with ARIA labels and roles</li>
+            <li>Embeddable in any form with textarea or div</li>
+            <li>Keyboard shortcuts (Ctrl+B, Ctrl+I, Ctrl+U)</li>
+            <li>Rich text formatting (bold, italic, underline, headings, lists)</li>
+            <li>Image insertion and alignment</li>
+            <li>Link creation</li>
+            <li>HTML code view toggle</li>
+        </ul>
+    </div>
+
+    <div class="demo-section">
+        <h2>Demo 1: Basic Editor with Textarea</h2>
+        <p>This example shows the editor embedded with a textarea element.</p>
+        
+        <div id="editor-description" role="region" aria-label="Editor instructions">
+            Try dragging and dropping an image into the editor below, or use the toolbar to format text!
+        </div>
+
+        <textarea id="editor1" aria-label="Content for basic editor">
+            <h2>Welcome to the WYSIWYG Editor!</h2>
+            <p>This is a <strong>powerful</strong> and <em>flexible</em> HTML editor.</p>
+            <ul>
+                <li>Edit this text</li>
+                <li>Drag and drop images</li>
+                <li>Use Ctrl+Z to undo</li>
+            </ul>
+        </textarea>
+
+        <div class="output-section">
+            <h3>HTML Output:</h3>
+            <pre id="output1"></pre>
+        </div>
+
+        <div class="code-block">
+            <code>const editor1 = new WYSIWYGEditor({
+    target: '#editor1',
+    placeholder: 'Start typing...',
+    ariaLabel: 'Main content editor',
+    ariaDescribedBy: 'editor-description',
+    onChange: (html) => {
+        document.getElementById('output1').textContent = html;
+    }
+});</code>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Demo 2: Editor with Custom Templates</h2>
+        <p>This example demonstrates custom template support for templating systems.</p>
+
+        <div id="editor2-container"></div>
+
+        <button onclick="insertCustomTemplate()">Insert Custom Template</button>
+        <button onclick="getEditorContent()">Get Content</button>
+
+        <div class="output-section">
+            <h3>HTML Output:</h3>
+            <pre id="output2"></pre>
+        </div>
+
+        <div class="code-block">
+            <code>const editor2 = new WYSIWYGEditor({
+    target: '#editor2-container',
+    customTemplates: {
+        'user-card': () => {
+            return `&lt;div class="user-card"&gt;
+                &lt;h3&gt;{{user.name}}&lt;/h3&gt;
+                &lt;p&gt;{{user.email}}&lt;/p&gt;
+            &lt;/div&gt;`;
+        },
+        'button': '&lt;button class="btn"&gt;{{label}}&lt;/button&gt;'
+    },
+    toolbarButtons: [
+        'bold', 'italic', 'underline', '|',
+        'h1', 'h2', 'p', '|',
+        'undo', 'redo', '|',
+        'code'
+    ]
+});</code>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Demo 3: Full Document Mode</h2>
+        <p>This editor can handle complete HTML documents, not just fragments.</p>
+
+        <div id="editor3-container"></div>
+
+        <button onclick="getFullDocument()">Get Full Document</button>
+        <button onclick="loadFullDocument()">Load Sample Document</button>
+
+        <div class="output-section">
+            <h3>Document Output:</h3>
+            <pre id="output3"></pre>
+        </div>
+
+        <div class="code-block">
+            <code>const editor3 = new WYSIWYGEditor({
+    target: '#editor3-container',
+    allowFullDocument: true,
+    placeholder: 'Enter your document content...'
+});</code>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>Demo 4: Custom Image Upload Handler</h2>
+        <p>Handle image uploads with custom logic (e.g., upload to server).</p>
+
+        <div id="editor4-container"></div>
+
+        <div class="output-section">
+            <h3>Upload Log:</h3>
+            <pre id="upload-log">Drag and drop an image to see the upload handler in action...</pre>
+        </div>
+
+        <div class="code-block">
+            <code>const editor4 = new WYSIWYGEditor({
+    target: '#editor4-container',
+    onImageDrop: (file, callback) => {
+        // Simulate upload to server
+        const formData = new FormData();
+        formData.append('image', file);
+        
+        // In real app, you would upload to server:
+        // fetch('/upload', { method: 'POST', body: formData })
+        //     .then(res => res.json())
+        //     .then(data => callback(data.url));
+        
+        // For demo, we'll use FileReader
+        const reader = new FileReader();
+        reader.onload = (e) => {
+            callback(e.target.result);
+        };
+        reader.readAsDataURL(file);
+    }
+});</code>
+        </div>
+    </div>
+
+    <div class="demo-section">
+        <h2>API Reference</h2>
+        
+        <h3>Constructor Options</h3>
+        <div class="code-block">
+            <code>new WYSIWYGEditor({
+    target: '#element',              // CSS selector or DOM element (required)
+    toolbar: true,                   // Show toolbar (default: true)
+    toolbarButtons: [...],           // Array of button names
+    placeholder: 'Start typing...',  // Placeholder text
+    maxHistorySize: 100,             // Max undo/redo history
+    imageUploadHandler: fn,          // Custom image upload function
+    onChange: fn,                    // Called when content changes
+    onImageDrop: fn,                 // Called when image is dropped
+    customTemplates: {},             // Custom template definitions
+    allowFullDocument: true,         // Support full HTML documents
+    ariaLabel: 'Rich text editor',   // ARIA label for accessibility
+    ariaDescribedBy: 'desc-id'       // ARIA described-by ID
+});</code>
+        </div>
+
+        <h3>Methods</h3>
+        <div class="code-block">
+            <code>editor.getHTML()              // Get HTML content
+editor.setHTML(html)           // Set HTML content
+editor.getDocument()           // Get full HTML document
+editor.setDocument(html)       // Set full HTML document
+editor.insertHTML(html)        // Insert HTML at cursor
+editor.insertTemplate(name)    // Insert custom template
+editor.undo()                  // Undo last change
+editor.redo()                  // Redo last undone change
+editor.destroy()               // Remove editor and restore target</code>
+        </div>
+    </div>
+
+    <script src="wysiwyg-editor.js"></script>
+    <script>
+        const editor1 = new WYSIWYGEditor({
+            target: '#editor1',
+            placeholder: 'Start typing...',
+            ariaLabel: 'Main content editor',
+            ariaDescribedBy: 'editor-description',
+            onChange: (html) => {
+                document.getElementById('output1').textContent = html;
+            }
+        });
+
+        const editor2 = new WYSIWYGEditor({
+            target: '#editor2-container',
+            customTemplates: {
+                'user-card': () => {
+                    return `<div class="user-card" style="border: 1px solid #ddd; padding: 15px; border-radius: 4px; margin: 10px 0;">
+                        <h3>{{user.name}}</h3>
+                        <p>{{user.email}}</p>
+                    </div>`;
+                },
+                'button': '<button class="btn" style="background: #0066cc; color: white; padding: 8px 16px; border: none; border-radius: 4px;">{{label}}</button>'
+            },
+            toolbarButtons: [
+                'bold', 'italic', 'underline', '|',
+                'h1', 'h2', 'p', '|',
+                'undo', 'redo', '|',
+                'code'
+            ],
+            onChange: (html) => {
+                document.getElementById('output2').textContent = html;
+            }
+        });
+
+        const editor3 = new WYSIWYGEditor({
+            target: '#editor3-container',
+            allowFullDocument: true,
+            placeholder: 'Enter your document content...'
+        });
+
+        const editor4 = new WYSIWYGEditor({
+            target: '#editor4-container',
+            placeholder: 'Drag and drop images here...',
+            onImageDrop: (file, callback) => {
+                const log = document.getElementById('upload-log');
+                log.textContent = `Uploading: ${file.name} (${(file.size / 1024).toFixed(2)} KB)\nType: ${file.type}\n\nIn a real application, this would upload to your server...`;
+                
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    callback(e.target.result);
+                    log.textContent += '\n\n✓ Upload complete! Image inserted into editor.';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+
+        function insertCustomTemplate() {
+            editor2.insertTemplate('user-card');
+        }
+
+        function getEditorContent() {
+            const html = editor2.getHTML();
+            document.getElementById('output2').textContent = html;
+            alert('Content copied to output section below!');
+        }
+
+        function getFullDocument() {
+            const doc = editor3.getDocument();
+            document.getElementById('output3').textContent = doc;
+        }
+
+        function loadFullDocument() {
+            const sampleDoc = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sample Document</title>
+    <style>
+        body { font-family: Arial, sans-serif; padding: 20px; }
+        h1 { color: #0066cc; }
+    </style>
+</head>
+<body>
+    <h1>Sample HTML Document</h1>
+    <p>This is a complete HTML document loaded into the editor.</p>
+    <p>You can edit it and export it back as a full document.</p>
+</body>
+</html>`;
+            editor3.setDocument(sampleDoc);
+            document.getElementById('output3').textContent = 'Document loaded! Click "Get Full Document" to see the output.';
+        }
+
+        document.getElementById('output1').textContent = editor1.getHTML();
+    </script>
+</body>
+</html>
